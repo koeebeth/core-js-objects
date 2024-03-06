@@ -378,32 +378,131 @@ function group(array, keySelector, valueSelector) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  classList: [],
+  element(value) {
+    const newObj = Object.create(cssSelectorBuilder);
+    newObj.classList = [...this.classList];
+    if (this.classList.some((el) => el.type === 'element')) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+    if (this.classList.some((el) => el.type !== 'element')) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    newObj.classList.push({
+      type: 'element',
+      value,
+    });
+    return newObj;
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    const newObj = Object.create(cssSelectorBuilder);
+    const str = `#${value}`;
+    newObj.classList = [...this.classList];
+    if (this.classList.some((el) => el.type === 'id')) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+    if (this.classList.some((el) => el.type !== 'element')) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    newObj.classList.push({
+      type: 'id',
+      value: str,
+    });
+    return newObj;
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    const newObj = Object.create(cssSelectorBuilder);
+    const str = `.${value}`;
+    if (
+      this.classList.some((el) => el.type === 'attr') ||
+      this.classList.some((el) => el.type === 'pseudoclass') ||
+      this.classList.some((el) => el.type === 'pseudoelement')
+    ) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    newObj.classList = [...this.classList];
+    newObj.classList.push({
+      type: 'class',
+      value: str,
+    });
+    return newObj;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    const newObj = Object.create(cssSelectorBuilder);
+    const str = `[${value}]`;
+    if (
+      this.classList.some((el) => el.type === 'pseudoclass') ||
+      this.classList.some((el) => el.type === 'pseudoelement')
+    ) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    newObj.classList = [...this.classList];
+    newObj.classList.push({
+      type: 'attr',
+      value: str,
+    });
+    return newObj;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    const newObj = Object.create(cssSelectorBuilder);
+    const str = `:${value}`;
+    if (this.classList.some((el) => el.type === 'pseudoelement')) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    newObj.classList = [...this.classList];
+    newObj.classList.push({
+      value: str,
+      type: 'pseudoclass',
+    });
+    return newObj;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    const newObj = Object.create(cssSelectorBuilder);
+    const str = `::${value}`;
+    newObj.classList = [...this.classList];
+    if (this.classList.some((el) => el.type === 'pseudoelement'))
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    newObj.classList.push({
+      type: 'pseudoelement',
+      value: str,
+    });
+    return newObj;
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    const newObj = Object.create(cssSelectorBuilder);
+    const newStr = `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
+    newObj.classList = [...this.classList];
+    newObj.classList.push({
+      type: 'combined',
+      value: newStr,
+    });
+    return newObj;
+  },
+  stringify() {
+    const values = this.classList.map((el) => el.value);
+    return values.join('');
   },
 };
 
